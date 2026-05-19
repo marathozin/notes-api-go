@@ -4,21 +4,27 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
+	"github.com/marathozin/notes-api-go/internal/middleware"
 	"github.com/marathozin/notes-api-go/internal/model"
 	"github.com/marathozin/notes-api-go/internal/store"
 	"github.com/marathozin/notes-api-go/pkg/response"
 )
 
-// Env хранит зависимости, доступные всем хэндлерам.
-// При росте проекта сюда добавляются логгер, конфиг, сервисный слой и т.д.
-type Env struct {
-	Notes store.NoteStore
+// NoteHandler обрабатывает CRUD-запросы заметок.
+type NoteHandler struct {
+	notes store.NoteStore
+}
+
+func NewNoteHandler(notes store.NoteStore) *NoteHandler {
+	return &NoteHandler{notes: notes}
 }
 
 // GetNotes   GET /notes
-func (e *Env) GetNotes(w http.ResponseWriter, r *http.Request) {
-	notes, err := e.Notes.GetAll()
+func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	notes, err := h.notes.GetAll(userID)
 	if err != nil {
 		response.Error(w, http.StatusInternalServerError, "could not retrieve notes")
 		return
@@ -27,10 +33,14 @@ func (e *Env) GetNotes(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetNote   GET /notes/{id}
-func (e *Env) GetNote(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+func (h *NoteHandler) GetNote(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+	userID := middleware.GetUserID(r)
 
-	note, err := e.Notes.GetByID(id)
+	note, err := h.notes.GetByID(id, userID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			response.Error(w, http.StatusNotFound, "note not found")
@@ -43,18 +53,20 @@ func (e *Env) GetNote(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateNote   POST /notes
-func (e *Env) CreateNote(w http.ResponseWriter, r *http.Request) {
+func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
 	var input model.CreateNoteInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		response.Error(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if input.Title == "" {
-		response.Error(w, http.StatusUnprocessableEntity, "title is required")
+	if input.Title == "" || input.Content == "" {
+		response.Error(w, http.StatusUnprocessableEntity, "title and content are required")
 		return
 	}
 
-	note, err := e.Notes.Create(input)
+	note, err := h.notes.Create(userID, input)
 	if err != nil {
 		response.Error(w, http.StatusInternalServerError, "could not create note")
 		return
@@ -63,20 +75,24 @@ func (e *Env) CreateNote(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateNote   PUT /notes/{id}
-func (e *Env) UpdateNote(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+	userID := middleware.GetUserID(r)
 
 	var input model.UpdateNoteInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		response.Error(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if input.Title == "" {
-		response.Error(w, http.StatusUnprocessableEntity, "title is required")
+	if input.Title == "" || input.Content == "" {
+		response.Error(w, http.StatusUnprocessableEntity, "title and content are required")
 		return
 	}
 
-	note, err := e.Notes.Update(id, input)
+	note, err := h.notes.Update(id, userID, input)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			response.Error(w, http.StatusNotFound, "note not found")
@@ -89,10 +105,14 @@ func (e *Env) UpdateNote(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteNote   DELETE /notes/{id}
-func (e *Env) DeleteNote(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+	userID := middleware.GetUserID(r)
 
-	if err := e.Notes.Delete(id); err != nil {
+	if err := h.notes.Delete(id, userID); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			response.Error(w, http.StatusNotFound, "note not found")
 			return
@@ -101,4 +121,14 @@ func (e *Env) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// parseID читает {id} из пути и валидирует как int64.
+func parseID(w http.ResponseWriter, r *http.Request) (int64, bool) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "id must be an integer")
+		return 0, false
+	}
+	return id, true
 }
