@@ -2,23 +2,24 @@ package model
 
 import "time"
 
-// Note - основная сущность приложения.
+// Заметка пользователя.
 type Note struct {
 	ID        string    `json:"id"`
 	Title     string    `json:"title"`
-	Body      string    `json:"body"`
+	Content   string    `json:"content"`
+	UserID    uint64    `json:"user_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// CreateNoteInput - входные данные для создания заметки.
+// Входные данные для создания заметки.
 type CreateNoteInput struct {
-	Title string `json:"title"`
-	Body  string `json:"body"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }
 
-// UpdateNoteInput - входные данные для обновления заметки.
+// Входные данные для обновления заметки.
 type UpdateNoteInput struct {
-	Title string `json:"title"`
-	Body  string `json:"body"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }
