@@ -46,7 +46,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			response.Error(w, http.StatusConflict, "email or username already taken")
 			return
 		}
-		response.Error(w, http.StatusInternalServerError, "could not create user")
+		response.Error(w, http.StatusInternalServerError, err.Error())
+		//response.Error(w, http.StatusInternalServerError, "could not create user")
 		return
 	}
 	response.JSON(w, http.StatusCreated, "user", user)
