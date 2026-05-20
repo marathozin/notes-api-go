@@ -20,7 +20,7 @@ func NewNoteStore(db *pgxpool.Pool) *NoteStore {
 }
 
 const noteSelectSQL = `
-	SELECT n.id, n.title, n.content, n.user_id, n.created_at, n.updated_at,
+	SELECT n.id, n.title, n.content, n.user_id, n.created_at, n.updated_at
 	FROM notes n`
 
 // GetAll возвращает все заметки пользователя.

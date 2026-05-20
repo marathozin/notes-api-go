@@ -68,7 +68,8 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 
 	note, err := h.notes.Create(userID, input)
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, "could not create note")
+		response.Error(w, http.StatusInternalServerError, err.Error())
+		//response.Error(w, http.StatusInternalServerError, "could not create note")
 		return
 	}
 	response.JSON(w, http.StatusCreated, "note", note)
