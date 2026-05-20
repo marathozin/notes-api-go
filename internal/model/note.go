@@ -4,7 +4,7 @@ import "time"
 
 // Заметка пользователя.
 type Note struct {
-	ID        string    `json:"id"`
+	ID        int64     `json:"id"`
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
 	UserID    int64     `json:"user_id"`
