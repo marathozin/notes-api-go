@@ -5,6 +5,9 @@ import (
 
 	"github.com/marathozin/notes-api-go/internal/middleware"
 	"github.com/marathozin/notes-api-go/internal/service"
+
+	_ "github.com/marathozin/notes-api-go/docs"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // NewRouter собирает маршруты и оборачивает их в middleware.
@@ -15,6 +18,8 @@ func NewRouter(
 	ts *service.TokenService,
 ) http.Handler {
 	mux := http.NewServeMux()
+
+	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	// public
 	mux.HandleFunc("POST /auth/register", auth.Register)
