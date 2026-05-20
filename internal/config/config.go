@@ -11,7 +11,7 @@ import (
 
 // Config хранит всю конфигурацию приложения.
 type Config struct {
-	Port string `env:"HHTP_PORT" envDefault:"8080"`
+	Port string `env:"HTTP_PORT" envDefault:"8080"`
 	DB   DBConfig
 	JWT  JWTConfig
 }
