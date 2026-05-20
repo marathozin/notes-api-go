@@ -16,6 +16,14 @@ import (
 	"github.com/marathozin/notes-api-go/internal/store/postgres"
 )
 
+// @title Notes API
+// @version 1.0
+// @description REST API для управления заметками с JWT-аутентификацией.
+// @BasePath /
+// @schemes http https
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	cfg, _ := config.Load()
 

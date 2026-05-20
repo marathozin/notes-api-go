@@ -24,7 +24,18 @@ func NewAuthHandler(users store.UserStore, tokens *service.TokenService) *AuthHa
 	return &AuthHandler{users: users, tokens: tokens}
 }
 
-// Register   POST /auth/register
+// Register регистрирует пользователя.
+// @Summary Регистрация пользователя
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body model.RegisterInput true "Данные регистрации"
+// @Success 201 {object} UserResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 409 {object} ErrorResponse
+// @Failure 422 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var input model.RegisterInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -53,7 +64,18 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusCreated, "user", user)
 }
 
-// Login   POST /auth/login
+// Login аутентифицирует пользователя.
+// @Summary Вход пользователя
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body model.LoginInput true "Данные входа"
+// @Success 200 {object} TokensResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var input model.LoginInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -88,11 +110,19 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Refresh   POST /auth/refresh
+// Refresh обновляет пару токенов.
+// @Summary Обновление access/refresh токенов
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body RefreshInput true "Refresh токен"
+// @Success 200 {object} TokensResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/refresh [post]
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		RefreshToken string `json:"refresh_token"`
-	}
+	var body RefreshInput
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.RefreshToken == "" {
 		response.Error(w, http.StatusBadRequest, "refresh_token is required")
 		return
@@ -115,7 +145,15 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Me   GET /auth/me
+// Me возвращает профиль текущего пользователя.
+// @Summary Профиль текущего пользователя
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} UserResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Router /auth/me [get]
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 	user, err := h.users.GetByID(userID)
