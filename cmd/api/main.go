@@ -25,7 +25,10 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	cfg, _ := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("load config: %v", err)
+	}
 
 	// База данных
 	db, err := postgres.New(cfg.DB.ConnectionString())
