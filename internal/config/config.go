@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -34,9 +33,7 @@ type JWTConfig struct {
 
 // Load читает .env (если есть) и парсит конфиг из переменных окружения.
 func Load() (*Config, error) {
-	if err := godotenv.Load(); err != nil {
-		log.Println("Предупреждение: .env файл не найден, используются системные переменные окружения")
-	}
+	_ = godotenv.Load()
 
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
