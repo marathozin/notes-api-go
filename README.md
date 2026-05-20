@@ -1,70 +1,121 @@
 # Notes API
 
-REST API для управления заметками на Go (net/http, без внешних зависимостей).
+REST API для управления заметками с тегами и JWT-авторизацией.  
+**Стек:** 
+- Go 1.26
+- net/http
+- pgx v5
+- bcrypt
+- JWT (HS256)
 
 ## Структура проекта
 
 ```
 notes-api/
-├── cmd/
-│   └── api/
-│       └── main.go          # точка входа, сборка зависимостей
+├── cmd/api/main.go                     # точка входа, сборка зависимостей
 ├── internal/
+│   ├── config/config.go                # конфиг из env-переменных
 │   ├── handler/
-│   │   ├── notes.go         # CRUD-хэндлеры
-│   │   └── routes.go        # регистрация маршрутов + middleware
+│   │   ├── auth.go                     # register, login, refresh, me
+│   │   ├── notes.go                    # CRUD заметок
+│   │   └── routes.go                   # регистрация маршрутов
 │   ├── middleware/
-│   │   └── logging.go       # Logging, RecoverPanic
+│   │   ├── auth.go                     # проверка JWT Bearer
+│   │   └── logging.go                  # логирование и recover panic
 │   ├── model/
-│   │   └── note.go          # структуры Note, CreateNoteInput, UpdateNoteInput
+│   │   ├── note.go                     # Note
+│   │   └── user.go                     # User
+│   ├── service/
+│   │   └── token.go                    # выдача и проверка JWT
 │   └── store/
-│       └── memory.go        # интерфейс NoteStore + in-memory реализация
-└── pkg/
-    └── response/
-        └── response.go      # вспомогательные функции JSON/Error
+│       ├── memory.go                   # интерфейсы UserStore, NoteStore
+│       └── postgres/
+│           ├── db.go                   # создание pgxpool
+│           ├── user.go                 # UserStore (postgres)
+│           ├── note.go                 # NoteStore (postgres)
+├── migrations
+│   ├── 001_create_users_table.down.sql # откат таблицы Users
+│   ├── 001_create_users_table.up.sql   # создание таблицы Users
+│   ├── 002_create_notes_table.down.sql # откат таблицы Notes
+│   └── 002_create_notes_table.up.sql   # создание таблицы Users
+├── pkg/response/response.go            # вспомогательные функции JSON/Error
+└── .env.example
 ```
 
-**Правило разграничения пакетов:**
-- `cmd/` — исполняемые приложения (wire-up зависимостей)
-- `internal/` — код, не предназначенный для внешних пользователей
-- `pkg/` — переиспользуемые утилиты без бизнес-логики
+---
 
-## Запуск
+## Быстрый старт
 
 ```bash
-go run ./cmd/api          # порт по умолчанию 8080
-PORT=3000 go run ./cmd/api
+# 1. Клонируйте и установите зависимости
+git clone https://github.com/marathozin/notes-api-go.git
+cd notes-api-go
+go mod tidy
+
+# 2. Настройте окружение
+cp .env.example .env
+# отредактируйте .env
+
+# 3. Примените миграции
+migrate -path migrations -database "postgres://user:pass@localhost:5432/notes?sslmode=disable" up
+
+# 4. Запуск
+go run ./cmd/api
 ```
 
 ## API
 
-| Метод  | Путь          | Описание              |
-|--------|---------------|-----------------------|
-| GET    | /notes        | Список всех заметок   |
-| POST   | /notes        | Создать заметку       |
-| GET    | /notes/{id}   | Получить заметку      |
-| PUT    | /notes/{id}   | Обновить заметку      |
-| DELETE | /notes/{id}   | Удалить заметку       |
+### Авторизация
 
-### Примеры (curl)
+| Метод | Путь              | Описание                                             | 
+|-------|-------------------|------------------------------------------------------|
+| POST  | /auth/register    | Регистрация                                          |
+| POST  | /auth/login       | Вход, возвращает токены                              |
+| POST  | /auth/refresh     | Обновить access по refresh токену                    |
+| GET   | /auth/me          | Данные текущего пользователя (требуется авторизация) |
+
+### Заметки (все требуют авторизации)
+
+| Метод  | Путь          | Описание                        |
+|--------|---------------|---------------------------------|
+| GET    | /notes        | Список заметок текущего юзера   |
+| POST   | /notes        | Создать заметку                 |
+| GET    | /notes/{id}   | Получить заметку                |
+| PUT    | /notes/{id}   | Обновить заметку                |
+| DELETE | /notes/{id}   | Удалить заметку                 |
+
+---
+
+### Примеры запросов
 
 ```bash
-# Создать
+# Регистрация
+curl -X POST localhost:8080/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"user@example.com","username":"user","password":"secret123"}'
+
+# Вход
+curl -X POST localhost:8080/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"user@example.com","password":"secret123"}'
+
+# Создать заметку
 curl -X POST localhost:8080/notes \
+  -H 'Authorization: Bearer <access_token>' \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Заметка 1","body":"Текст заметки"}'
+  -d '{"title":"Заметка 1","content":"Текст заметки"}'
 
-# Список
-curl localhost:8080/notes
+# Список заметок
+curl localhost:8080/notes \
+  -H 'Authorization: Bearer <access_token>'
 
-# Получить по ID
-curl localhost:8080/notes/1
-
-# Обновить
-curl -X PUT localhost:8080/notes/1 \
+# Обновить refresh токен
+curl -X POST localhost:8080/auth/refresh \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Обновлённая заметка","body":"Новый текст"}'
-
-# Удалить
-curl -X DELETE localhost:8080/notes/1
+  -d '{"refresh_token":"<refresh_token>"}'
 ```
+
+## Планируемые улучшения:
+1. Пагинация
+2. Поиск по заметкам
+3. Rate limiting
