@@ -21,7 +21,15 @@ func NewNoteHandler(notes store.NoteStore) *NoteHandler {
 	return &NoteHandler{notes: notes}
 }
 
-// GetNotes   GET /notes
+// GetNotes возвращает список заметок текущего пользователя.
+// @Summary Список заметок
+// @Tags notes
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} NotesResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /notes [get]
 func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 	notes, err := h.notes.GetAll(userID)
@@ -32,7 +40,18 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, "notes", notes)
 }
 
-// GetNote   GET /notes/{id}
+// GetNote возвращает заметку по ID.
+// @Summary Получить заметку
+// @Tags notes
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID заметки"
+// @Success 200 {object} NoteResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /notes/{id} [get]
 func (h *NoteHandler) GetNote(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(w, r)
 	if !ok {
@@ -52,7 +71,19 @@ func (h *NoteHandler) GetNote(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, "note", note)
 }
 
-// CreateNote   POST /notes
+// CreateNote создает новую заметку.
+// @Summary Создать заметку
+// @Tags notes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param input body model.CreateNoteInput true "Данные заметки"
+// @Success 201 {object} NoteResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 422 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /notes [post]
 func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 
@@ -74,7 +105,21 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusCreated, "note", note)
 }
 
-// UpdateNote   PUT /notes/{id}
+// UpdateNote обновляет заметку по ID.
+// @Summary Обновить заметку
+// @Tags notes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID заметки"
+// @Param input body model.UpdateNoteInput true "Новые данные заметки"
+// @Success 200 {object} NoteResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 422 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /notes/{id} [put]
 func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(w, r)
 	if !ok {
@@ -104,7 +149,18 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, "note", note)
 }
 
-// DeleteNote   DELETE /notes/{id}
+// DeleteNote удаляет заметку по ID.
+// @Summary Удалить заметку
+// @Tags notes
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID заметки"
+// @Success 204
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /notes/{id} [delete]
 func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(w, r)
 	if !ok {
