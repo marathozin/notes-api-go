@@ -41,6 +41,6 @@ func NewRouter(
 	mux.Handle("/auth/me", authMW(protected))
 	mux.Handle("/notes", authMW(protected))
 
-	// Middleware применяется снаружи внутрь: сначала RecoverPanic, потом Logging.
-	return middleware.RecoverPanic(middleware.Logging(mux))
+	// CORS -> RecoverPanic -> Logging
+	return middleware.CORS(middleware.RecoverPanic(middleware.Logging(mux)))
 }
