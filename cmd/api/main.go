@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/marathozin/notes-api-go/docs"
 	"github.com/marathozin/notes-api-go/internal/config"
 	"github.com/marathozin/notes-api-go/internal/handler"
 	"github.com/marathozin/notes-api-go/internal/service"
@@ -28,6 +29,17 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("load config: %v", err)
+	}
+
+	// Render автоматически устанавливает эту переменную на своих сервисах
+	renderHost := os.Getenv("RENDER_EXTERNAL_HOSTNAME")
+
+	if renderHost != "" {
+		docs.SwaggerInfo.Host = renderHost
+		docs.SwaggerInfo.Schemes = []string{"https"}
+	} else {
+		docs.SwaggerInfo.Host = fmt.Sprintf("localhost:%s", cfg.Port)
+		docs.SwaggerInfo.Schemes = []string{"http"}
 	}
 
 	// База данных
