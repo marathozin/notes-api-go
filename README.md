@@ -1,6 +1,9 @@
 # Notes API
 
-REST API для управления заметками с тегами и JWT-авторизацией.  
+REST API для управления заметками с тегами и JWT-авторизацией.
+
+Документация API: https://notes-api-go-dw61.onrender.com/swagger/index.html
+
 **Стек:** 
 - Go 1.26
 - net/http
@@ -55,26 +58,28 @@ notes-api/
 
 ## Быстрый старт
 
+### 1. Клонируйте и установите зависимости
+
 ```bash
-# 1. Клонируйте и установите зависимости
 git clone https://github.com/marathozin/notes-api-go.git
 cd notes-api-go
 go mod tidy
+```
 
-# 2. Настройте окружение
+### 2. Настройте окружение
+```bash
 cp .env.example .env
 # отредактируйте .env
+# сгенерируйте JWT_SECRET: openssl rand -hex 64
+# docker compose по умолчанию использует DATABASE_URL из .env.example
+```
 
-# 3. Примените миграции
-migrate -path migrations -database "postgres://user:pass@localhost:5432/notes?sslmode=disable" up
-
-# 4. Запуск
-go run ./cmd/api
+### 4. Запуск
+```bash
+docker compose up --build -d
 ```
 
 ## API
-
-Документация API: http://localhost:8080/swagger
 
 ### Авторизация
 
@@ -97,7 +102,7 @@ go run ./cmd/api
 
 ---
 
-### Примеры запросов
+## Примеры запросов
 
 ```bash
 # Регистрация
