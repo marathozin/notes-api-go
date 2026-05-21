@@ -2,7 +2,7 @@
 
 REST API для управления заметками с тегами и JWT-авторизацией.
 
-Документация API: https://notes-api-go-dw61.onrender.com/swagger/index.html
+Интерактивная документация API: https://notes-api-go-dw61.onrender.com/swagger/index.html
 
 **Стек:** 
 - Go 1.26
