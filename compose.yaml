@@ -36,8 +36,5 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DB_HOST: postgres
-      DB_USER: postgres
-      DB_NAME: notes
-      DB_PASSWORD: postgres
+      DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}

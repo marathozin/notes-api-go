@@ -16,11 +16,13 @@ type Config struct {
 }
 
 type DBConfig struct {
-	Host     string `env:"DB_HOST,required"`
+	DatabaseURL string `env:"DATABASE_URL"`
+
+	Host     string `env:"DB_HOST"`
 	Port     string `env:"DB_PORT" envDefault:"5432"`
-	User     string `env:"DB_USER,required"`
-	Password string `env:"DB_PASSWORD,required"`
-	Name     string `env:"DB_NAME,required"`
+	User     string `env:"DB_USER"`
+	Password string `env:"DB_PASSWORD"`
+	Name     string `env:"DB_NAME"`
 	SSLMode  string `env:"DB_SSL_MODE" envDefault:"disable"`
 	MaxConns int    `env:"DB_MAX_CONNS" envDefault:"10"`
 }
@@ -44,6 +46,9 @@ func Load() (*Config, error) {
 
 // ConnectionString возвращает строку подключения к PostgreSQL.
 func (c DBConfig) ConnectionString() string {
+	if c.DatabaseURL != "" {
+		return fmt.Sprintf("%s?pool_max_conns=%d", c.DatabaseURL, c.MaxConns)
+	}
 	return fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s pool_max_conns=%d",
 		c.Host, c.Port, c.User, c.Password, c.Name, c.SSLMode, c.MaxConns,
