@@ -23,7 +23,7 @@ type DBConfig struct {
 	User     string `env:"DB_USER"`
 	Password string `env:"DB_PASSWORD"`
 	Name     string `env:"DB_NAME"`
-	SSLMode  string `env:"DB_SSL_MODE" envDefault:"disable"`
+	SSLMode  string `env:"DB_SSLMODE" envDefault:"disable"`
 	MaxConns int    `env:"DB_MAX_CONNS" envDefault:"10"`
 }
 
