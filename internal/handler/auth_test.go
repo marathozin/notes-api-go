@@ -11,7 +11,7 @@ import (
 
 func newAuthHandler() (*handler.AuthHandler, *testutil.MockUserStore) {
 	users := testutil.NewMockUserStore()
-	return handler.NewAuthHandler(users, testutil.TokenSvc()), users
+	return handler.NewAuthHandler(users, &testutil.MockTokenService{}), users
 }
 
 // Register
@@ -88,7 +88,7 @@ func TestRegister_InvalidJSON(t *testing.T) {
 }
 
 func TestRegister_StoreError(t *testing.T) {
-	h := handler.NewAuthHandler(&testutil.MockFailUserStore{}, testutil.TokenSvc())
+	h := handler.NewAuthHandler(&testutil.MockFailUserStore{}, &testutil.MockTokenService{})
 
 	r := testutil.NewRequest(t, http.MethodPost, "/auth/register", model.RegisterInput{
 		Email:    "user@example.com",
@@ -122,8 +122,8 @@ func TestLogin_Success(t *testing.T) {
 	w := testutil.Do(h.Login, r)
 
 	testutil.AssertStatus(t, w, http.StatusOK)
-	testutil.AssertBodyContains(t, w, "access_token")
-	testutil.AssertBodyContains(t, w, "refresh_token")
+	testutil.AssertBodyContains(t, w, `"access_token":"access-token"`)
+	testutil.AssertBodyContains(t, w, `"refresh_token":"refresh-token"`)
 }
 
 func TestLogin_WrongPassword(t *testing.T) {
@@ -172,16 +172,10 @@ func TestLogin_InvalidJSON(t *testing.T) {
 // Refresh
 
 func TestRefresh_Success(t *testing.T) {
-	ts := testutil.TokenSvc()
-	h := handler.NewAuthHandler(testutil.NewMockUserStore(), ts)
-
-	_, refresh, err := ts.GeneratePair(42)
-	if err != nil {
-		t.Fatal(err)
-	}
+	h, _ := newAuthHandler()
 
 	r := testutil.NewRequest(t, http.MethodPost, "/auth/refresh", map[string]string{
-		"refresh_token": refresh,
+		"refresh_token": "refresh-token",
 	})
 	w := testutil.Do(h.Refresh, r)
 
@@ -202,16 +196,10 @@ func TestRefresh_InvalidToken(t *testing.T) {
 
 func TestRefresh_AccessTokenRejected(t *testing.T) {
 	// Нельзя обновить сессию через access-токен - только через refresh.
-	ts := testutil.TokenSvc()
-	h := handler.NewAuthHandler(testutil.NewMockUserStore(), ts)
-
-	access, _, err := ts.GeneratePair(42)
-	if err != nil {
-		t.Fatal(err)
-	}
+	h, _ := newAuthHandler()
 
 	r := testutil.NewRequest(t, http.MethodPost, "/auth/refresh", map[string]string{
-		"refresh_token": access, // access вместо refresh
+		"refresh_token": "access-token", // access вместо refresh
 	})
 	w := testutil.Do(h.Refresh, r)
 

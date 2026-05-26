@@ -4,18 +4,45 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/marathozin/notes-api-go/internal/middleware"
-	"github.com/marathozin/notes-api-go/internal/service"
 )
 
-// Токен-сервис с коротким TTL для тестов.
-func TokenSvc() service.TokenService {
-	return service.NewTokenService("test-secret", time.Minute, time.Hour)
+type MockTokenService struct{}
+
+func (m *MockTokenService) GeneratePair(userID int64) (string, string, error) {
+	return "access-token", "refresh-token", nil
+}
+
+func (m *MockTokenService) ValidateAccess(token string) (int64, error) {
+	if token == "access-token" {
+		return 1, nil
+	}
+	return 0, errors.New("invalid token")
+}
+
+func (m *MockTokenService) ValidateRefresh(token string) (int64, error) {
+	if token == "refresh-token" {
+		return 1, nil
+	}
+	return 0, errors.New("invalid token")
+}
+
+// MockFailTokenService - всегда возвращает ошибку.
+type MockFailTokenService struct{}
+
+func (m *MockFailTokenService) GeneratePair(_ int64) (string, string, error) {
+	return "", "", errors.New("token error")
+}
+func (m *MockFailTokenService) ValidateAccess(_ string) (int64, error) {
+	return 0, errors.New("token error")
+}
+func (m *MockFailTokenService) ValidateRefresh(_ string) (int64, error) {
+	return 0, errors.New("token error")
 }
 
 // NewRequest создаёт *http.Request с JSON-телом и опциональными заголовками.
