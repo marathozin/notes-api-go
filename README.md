@@ -37,7 +37,7 @@ notes-api/
 │   ├── service/
 │   │   └── token.go                    # выдача и проверка JWT
 │   └── store/
-│       ├── memory.go                   # интерфейсы UserStore, NoteStore
+│       ├── interfaces.go                   # интерфейсы UserStore, NoteStore
 │       └── postgres/
 │           ├── db.go                   # создание pgxpool
 │           ├── user.go                 # UserStore (postgres)
