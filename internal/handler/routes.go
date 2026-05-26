@@ -15,7 +15,7 @@ import (
 func NewRouter(
 	auth *AuthHandler,
 	notes *NoteHandler,
-	ts *service.TokenService,
+	ts service.TokenService,
 ) http.Handler {
 	mux := http.NewServeMux()
 

@@ -30,3 +30,8 @@ type TokenPair struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
+
+// RefreshInput тело запроса на обновление токена.
+type RefreshInput struct {
+	RefreshToken string `json:"refresh_token"`
+}

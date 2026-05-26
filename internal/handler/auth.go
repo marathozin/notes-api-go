@@ -17,10 +17,10 @@ import (
 // AuthHandler обрабатывает запросы авторизации.
 type AuthHandler struct {
 	users  store.UserStore
-	tokens *service.TokenService
+	tokens service.TokenService
 }
 
-func NewAuthHandler(users store.UserStore, tokens *service.TokenService) *AuthHandler {
+func NewAuthHandler(users store.UserStore, tokens service.TokenService) *AuthHandler {
 	return &AuthHandler{users: users, tokens: tokens}
 }
 
@@ -30,11 +30,11 @@ func NewAuthHandler(users store.UserStore, tokens *service.TokenService) *AuthHa
 // @Accept json
 // @Produce json
 // @Param input body model.RegisterInput true "Данные регистрации"
-// @Success 201 {object} UserResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 409 {object} ErrorResponse
-// @Failure 422 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 201 {object} object{user=model.User}
+// @Failure 400 {object} object{error=string}
+// @Failure 409 {object} object{error=string}
+// @Failure 422 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
 // @Router /auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var input model.RegisterInput
@@ -71,10 +71,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param input body model.LoginInput true "Данные входа"
 // @Success 200 {object} TokensResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 403 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 403 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var input model.LoginInput
@@ -116,13 +116,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param input body RefreshInput true "Refresh токен"
-// @Success 200 {object} TokensResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} object{tokens=model.TokenPair}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
 // @Router /auth/refresh [post]
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
-	var body RefreshInput
+	var body model.RefreshInput
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.RefreshToken == "" {
 		response.Error(w, http.StatusBadRequest, "refresh_token is required")
 		return
@@ -150,9 +150,9 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 // @Tags auth
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} UserResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
+// @Success 200 {object} object{user=model.User}
+// @Failure 401 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
 // @Router /auth/me [get]
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)

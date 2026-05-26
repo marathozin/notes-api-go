@@ -26,8 +26,7 @@ notes-api/
 │   │   ├── auth_test.go                # тесты для auth handlers
 │   │   ├── auth.go                     # register, login, refresh, me
 │   │   ├── notes_test.go               # тесты для notes handlers
-│   │   ├── notes.go                    # CRUD заметок
-│   │   └── swagger_types.go            # типы для Swagger-схем ответов
+│   │   └── notes.go                    # CRUD заметок
 │   ├── middleware/
 │   │   ├── auth.go                     # проверка JWT Bearer
 │   │   └── logging.go                  # логирование и recover panic

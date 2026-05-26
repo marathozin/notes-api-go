@@ -14,7 +14,7 @@ type contextKey string
 const UserIDKey contextKey = "userID"
 
 // Auth проверяет Bearer-токен и кладёт userID в контекст запроса.
-func Auth(ts *service.TokenService) func(http.Handler) http.Handler {
+func Auth(ts service.TokenService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			header := r.Header.Get("Authorization")

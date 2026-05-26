@@ -14,7 +14,7 @@ import (
 )
 
 // Токен-сервис с коротким TTL для тестов.
-func TokenSvc() *service.TokenService {
+func TokenSvc() service.TokenService {
 	return service.NewTokenService("test-secret", time.Minute, time.Hour)
 }
 

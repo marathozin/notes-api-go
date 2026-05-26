@@ -26,9 +26,9 @@ func NewNoteHandler(notes store.NoteStore) *NoteHandler {
 // @Tags notes
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} NotesResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} object{notes=[]model.Note}
+// @Failure 401 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
 // @Router /notes [get]
 func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
@@ -46,11 +46,11 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path int true "ID заметки"
-// @Success 200 {object} NoteResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} object{note=model.Note}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
 // @Router /notes/{id} [get]
 func (h *NoteHandler) GetNote(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(w, r)
@@ -78,11 +78,11 @@ func (h *NoteHandler) GetNote(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security BearerAuth
 // @Param input body model.CreateNoteInput true "Данные заметки"
-// @Success 201 {object} NoteResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 422 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 201 {object} object{note=model.Note}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 422 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
 // @Router /notes [post]
 func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
@@ -114,12 +114,12 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Param id path int true "ID заметки"
 // @Param input body model.UpdateNoteInput true "Новые данные заметки"
-// @Success 200 {object} NoteResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 422 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} object{note=model.Note}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Failure 422 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
 // @Router /notes/{id} [put]
 func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(w, r)
@@ -157,10 +157,10 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Param id path int true "ID заметки"
 // @Success 204
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
 // @Router /notes/{id} [delete]
 func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(w, r)

@@ -15,15 +15,20 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-// TokenService выдаёт и проверяет JWT.
-type TokenService struct {
+type TokenService interface {
+	GeneratePair(userID int64) (access, refresh string, err error)
+	ValidateAccess(token string) (int64, error)
+	ValidateRefresh(token string) (int64, error)
+}
+
+type tokenService struct {
 	secret          []byte
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
 }
 
-func NewTokenService(secret string, accessTTL, refreshTTL time.Duration) *TokenService {
-	return &TokenService{
+func NewTokenService(secret string, accessTTL, refreshTTL time.Duration) TokenService {
+	return &tokenService{
 		secret:          []byte(secret),
 		accessTokenTTL:  accessTTL,
 		refreshTokenTTL: refreshTTL,
@@ -31,7 +36,7 @@ func NewTokenService(secret string, accessTTL, refreshTTL time.Duration) *TokenS
 }
 
 // GeneratePair создаёт пару access + refresh токенов.
-func (s *TokenService) GeneratePair(userID int64) (access, refresh string, err error) {
+func (s *tokenService) GeneratePair(userID int64) (access, refresh string, err error) {
 	access, err = s.sign(userID, "access", s.accessTokenTTL)
 	if err != nil {
 		return "", "", fmt.Errorf("sign access: %w", err)
@@ -44,16 +49,16 @@ func (s *TokenService) GeneratePair(userID int64) (access, refresh string, err e
 }
 
 // ValidateAccess проверяет access-токен и возвращает userID.
-func (s *TokenService) ValidateAccess(tokenStr string) (int64, error) {
+func (s *tokenService) ValidateAccess(tokenStr string) (int64, error) {
 	return s.validate(tokenStr, "access")
 }
 
 // ValidateRefresh проверяет refresh-токен и возвращает userID.
-func (s *TokenService) ValidateRefresh(tokenStr string) (int64, error) {
+func (s *tokenService) ValidateRefresh(tokenStr string) (int64, error) {
 	return s.validate(tokenStr, "refresh")
 }
 
-func (s *TokenService) sign(userID int64, kind string, ttl time.Duration) (string, error) {
+func (s *tokenService) sign(userID int64, kind string, ttl time.Duration) (string, error) {
 	claims := Claims{
 		UserID: userID,
 		Kind:   kind,
@@ -65,7 +70,7 @@ func (s *TokenService) sign(userID int64, kind string, ttl time.Duration) (strin
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.secret)
 }
 
-func (s *TokenService) validate(tokenStr, expectedKind string) (int64, error) {
+func (s *tokenService) validate(tokenStr, expectedKind string) (int64, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
