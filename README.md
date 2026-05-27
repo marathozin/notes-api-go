@@ -28,15 +28,18 @@ notes-api/
 │   │   ├── notes_test.go               # тесты для notes handlers
 │   │   └── notes.go                    # CRUD заметок
 │   ├── middleware/
+│   │   ├── cors.go                     # middleware CORS
+│   │   ├── logging.go                  # логирование
 │   │   ├── auth.go                     # проверка JWT Bearer
-│   │   └── logging.go                  # логирование и recover panic
+│   │   ├── rate_limit.go               # Rate limiters
+│   │   └── rate_limit_test.go          # тесты для rate limiters
 │   ├── model/
 │   │   ├── note.go                     # Note model
 │   │   └── user.go                     # User model
 │   ├── service/
 │   │   └── token.go                    # выдача и проверка JWT
 │   └── store/
-│       ├── interfaces.go                   # интерфейсы UserStore, NoteStore
+│       ├── interfaces.go               # интерфейсы UserStore, NoteStore
 │       └── postgres/
 │           ├── db.go                   # создание pgxpool
 │           ├── user.go                 # UserStore (postgres)
@@ -133,4 +136,3 @@ curl -X POST localhost:8080/auth/refresh \
 ## Планируемые улучшения:
 1. Пагинация
 2. Поиск по заметкам
-3. Rate limiting
