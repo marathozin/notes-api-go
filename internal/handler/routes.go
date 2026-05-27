@@ -2,6 +2,9 @@ package handler
 
 import (
 	"net/http"
+	"time"
+
+	"golang.org/x/time/rate"
 
 	"github.com/marathozin/notes-api-go/internal/middleware"
 	"github.com/marathozin/notes-api-go/internal/service"
@@ -17,13 +20,31 @@ func NewRouter(
 	notes *NoteHandler,
 	ts service.TokenService,
 ) http.Handler {
+	// Глобальный лимитер: 100 запросов в минуту, всплеск до 20.
+	globalLimiter := middleware.NewIPRateLimiter(
+		rate.Every(time.Minute/100),
+		20,
+		5*time.Minute,
+	)
+
+	// Строгий лимитер для auth-эндпоинтов: 10 запросов в минуту, всплеск до 5.
+	authLimiter := middleware.NewIPRateLimiter(
+		rate.Every(time.Minute/10),
+		5,
+		10*time.Minute,
+	)
+
+	globalRL := middleware.RateLimit(globalLimiter)
+	authRL := middleware.RateLimit(authLimiter)
+	authMW := middleware.Auth(ts)
+
 	mux := http.NewServeMux()
 
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	// public
-	mux.HandleFunc("POST /auth/register", auth.Register)
-	mux.HandleFunc("POST /auth/login", auth.Login)
+	mux.Handle("POST /auth/register", authRL(http.HandlerFunc(auth.Register)))
+	mux.Handle("POST /auth/login", authRL(http.HandlerFunc(auth.Login)))
 	mux.HandleFunc("POST /auth/refresh", auth.Refresh)
 
 	// protected
@@ -37,10 +58,10 @@ func NewRouter(
 	protected.HandleFunc("DELETE /notes/{id}", notes.DeleteNote)
 
 	// auth middleware
-	authMW := middleware.Auth(ts)
 	mux.Handle("/auth/me", authMW(protected))
 	mux.Handle("/notes", authMW(protected))
+	mux.Handle("/notes/", authMW(protected))
 
-	// CORS -> RecoverPanic -> Logging
-	return middleware.CORS(middleware.RecoverPanic(middleware.Logging(mux)))
+	// Глобальные middleware: CORS -> RecoverPanic -> Logging -> глобальный rate limit.
+	return middleware.CORS(middleware.RecoverPanic(middleware.Logging(globalRL(mux))))
 }
