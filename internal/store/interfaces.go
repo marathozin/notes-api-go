@@ -20,7 +20,7 @@ type UserStore interface {
 
 // Интерфейс хранилища заметок.
 type NoteStore interface {
-	GetAll(userID int64) ([]*model.Note, error)
+	GetAll(userID int64, pagination model.PaginationParams) ([]*model.Note, int, error)
 	GetByID(id, userID int64) (*model.Note, error)
 	Create(userID int64, input model.CreateNoteInput) (*model.Note, error)
 	Update(id, userID int64, input model.UpdateNoteInput) (*model.Note, error)

@@ -4,6 +4,7 @@ package testutil
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -84,7 +85,7 @@ func NewMockNoteStore() *MockNoteStore {
 	return &MockNoteStore{notes: make(map[int64]*model.Note)}
 }
 
-func (s *MockNoteStore) GetAll(userID int64) ([]*model.Note, error) {
+func (s *MockNoteStore) GetAll(userID int64, pagination model.PaginationParams) ([]*model.Note, int, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -94,10 +95,23 @@ func (s *MockNoteStore) GetAll(userID int64) ([]*model.Note, error) {
 			result = append(result, n)
 		}
 	}
-	if result == nil {
-		result = []*model.Note{}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].UpdatedAt.Equal(result[j].UpdatedAt) {
+			return result[i].ID > result[j].ID
+		}
+		return result[i].UpdatedAt.After(result[j].UpdatedAt)
+	})
+
+	total := len(result)
+	start := (pagination.Page - 1) * pagination.Limit
+	if start >= total {
+		return []*model.Note{}, total, nil
 	}
-	return result, nil
+	end := start + pagination.Limit
+	if end > total {
+		end = total
+	}
+	return result[start:end], total, nil
 }
 
 func (s *MockNoteStore) GetByID(id, userID int64) (*model.Note, error) {
@@ -182,7 +196,9 @@ func (s *MockFailUserStore) GetByID(_ int64) (*model.User, error)     { return n
 // Стор, который всегда возвращает ошибку (для тестов 500).
 type MockFailNoteStore struct{}
 
-func (s *MockFailNoteStore) GetAll(_ int64) ([]*model.Note, error) { return nil, ErrStore }
+func (s *MockFailNoteStore) GetAll(_ int64, _ model.PaginationParams) ([]*model.Note, int, error) {
+	return nil, 0, ErrStore
+}
 func (s *MockFailNoteStore) GetByID(_, _ int64) (*model.Note, error) {
 	return nil, ErrStore
 }

@@ -248,8 +248,30 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Номер страницы",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Количество заметок на странице",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ]
             },
             "post": {
                 "security": [
@@ -520,6 +542,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/model.Note"
                     }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/model.PaginationMeta"
                 }
             }
         },
@@ -645,6 +670,23 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "model.PaginationMeta": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
                 }
             }
         }
