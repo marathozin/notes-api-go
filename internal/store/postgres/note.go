@@ -23,15 +23,29 @@ const noteSelectSQL = `
 	SELECT n.id, n.title, n.content, n.user_id, n.created_at, n.updated_at
 	FROM notes n`
 
-// GetAll возвращает все заметки пользователя.
-func (s *NoteStore) GetAll(userID int64) ([]*model.Note, error) {
-	q := noteSelectSQL + ` WHERE n.user_id = $1 GROUP BY n.id ORDER BY n.updated_at DESC`
-	rows, err := s.db.Query(context.Background(), q, userID)
+// GetAll возвращает страницу заметок пользователя и общее количество его заметок.
+func (s *NoteStore) GetAll(userID int64, pagination model.PaginationParams) ([]*model.Note, int, error) {
+	var total int
+	if err := s.db.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM notes WHERE user_id = $1`,
+		userID,
+	).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	offset := (pagination.Page - 1) * pagination.Limit
+	q := noteSelectSQL + ` WHERE n.user_id = $1 GROUP BY n.id ORDER BY n.updated_at DESC LIMIT $2 OFFSET $3`
+	rows, err := s.db.Query(context.Background(), q, userID, pagination.Limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
-	return scanNotes(rows)
+
+	notes, err := scanNotes(rows)
+	if err != nil {
+		return nil, 0, err
+	}
+	return notes, total, nil
 }
 
 // GetByID возвращает заметку, если она принадлежит пользователю.

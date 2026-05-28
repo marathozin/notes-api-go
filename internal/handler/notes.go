@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -26,18 +27,36 @@ func NewNoteHandler(notes store.NoteStore) *NoteHandler {
 // @Tags notes
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} object{notes=[]model.Note}
+// @Param page query int false "Номер страницы" default(1)
+// @Param limit query int false "Количество заметок на странице" default(20)
+// @Success 200 {object} object{notes=[]model.Note,pagination=model.PaginationMeta}
+// @Failure 400 {object} object{error=string}
 // @Failure 401 {object} object{error=string}
 // @Failure 500 {object} object{error=string}
 // @Router /notes [get]
 func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
-	notes, err := h.notes.GetAll(userID)
+	pagination, ok := parsePagination(w, r)
+	if !ok {
+		return
+	}
+
+	notes, total, err := h.notes.GetAll(userID, pagination)
 	if err != nil {
 		response.Error(w, http.StatusInternalServerError, "could not retrieve notes")
 		return
 	}
-	response.JSON(w, http.StatusOK, "notes", notes)
+
+	meta := model.PaginationMeta{
+		Page:       pagination.Page,
+		Limit:      pagination.Limit,
+		Total:      total,
+		TotalPages: int(math.Ceil(float64(total) / float64(pagination.Limit))),
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"notes":      notes,
+		"pagination": meta,
+	})
 }
 
 // GetNote возвращает заметку по ID.
@@ -188,4 +207,41 @@ func parseID(w http.ResponseWriter, r *http.Request) (int64, bool) {
 		return 0, false
 	}
 	return id, true
+}
+
+const (
+	defaultNotesPage  = 1
+	defaultNotesLimit = 20
+	maxNotesLimit     = 100
+)
+
+// parsePagination читает page и limit из query string и валидирует их.
+func parsePagination(w http.ResponseWriter, r *http.Request) (model.PaginationParams, bool) {
+	params := model.PaginationParams{Page: defaultNotesPage, Limit: defaultNotesLimit}
+
+	if raw := r.URL.Query().Get("page"); raw != "" {
+		page, err := strconv.Atoi(raw)
+		if err != nil || page < 1 {
+			response.Error(w, http.StatusBadRequest, "page must be a positive integer")
+			return model.PaginationParams{}, false
+		}
+		params.Page = page
+	}
+
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		limit, err := strconv.Atoi(raw)
+		if err != nil || limit < 1 || limit > maxNotesLimit {
+			response.Error(w, http.StatusBadRequest, "limit must be an integer between 1 and 100")
+			return model.PaginationParams{}, false
+		}
+		params.Limit = limit
+	}
+
+	return params, true
+}
+
+func writeJSON(w http.ResponseWriter, status int, payload any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(payload)
 }

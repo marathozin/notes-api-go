@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -89,6 +90,125 @@ func TestGetNotes_OnlyOwnNotes(t *testing.T) {
 
 	if strings.Contains(w.Body.String(), "Other note") {
 		t.Errorf("response must not contain another user's note, got: %s", w.Body.String())
+	}
+}
+
+func TestGetNotes_DefaultPagination(t *testing.T) {
+	h, store := newNoteHandler()
+	base := time.Date(2026, time.May, 28, 12, 0, 0, 0, time.UTC)
+	for i := 1; i <= 25; i++ {
+		store.Seed(&model.Note{
+			ID:        int64(i),
+			Title:     fmt.Sprintf("Note %02d", i),
+			Content:   "Content",
+			UserID:    testUserID,
+			CreatedAt: base.Add(time.Duration(i) * time.Minute),
+			UpdatedAt: base.Add(time.Duration(i) * time.Minute),
+		})
+	}
+
+	r := testutil.NewRequest(t, http.MethodGet, "/notes", nil)
+	w := doNote(h.GetNotes, r, testUserID)
+
+	testutil.AssertStatus(t, w, http.StatusOK)
+	var body struct {
+		Notes      []model.Note         `json:"notes"`
+		Pagination model.PaginationMeta `json:"pagination"`
+	}
+	testutil.DecodeBody(t, w, &body)
+
+	if len(body.Notes) != 20 {
+		t.Fatalf("notes count: got %d, want 20", len(body.Notes))
+	}
+	if body.Notes[0].ID != 25 || body.Notes[19].ID != 6 {
+		t.Fatalf("unexpected default page order: first id %d, last id %d", body.Notes[0].ID, body.Notes[19].ID)
+	}
+	wantMeta := model.PaginationMeta{Page: 1, Limit: 20, Total: 25, TotalPages: 2}
+	if body.Pagination != wantMeta {
+		t.Fatalf("pagination: got %+v, want %+v", body.Pagination, wantMeta)
+	}
+}
+
+func TestGetNotes_CustomPagination(t *testing.T) {
+	h, store := newNoteHandler()
+	base := time.Date(2026, time.May, 28, 12, 0, 0, 0, time.UTC)
+	for i := 1; i <= 5; i++ {
+		store.Seed(&model.Note{
+			ID:        int64(i),
+			Title:     fmt.Sprintf("Note %02d", i),
+			Content:   "Content",
+			UserID:    testUserID,
+			CreatedAt: base.Add(time.Duration(i) * time.Minute),
+			UpdatedAt: base.Add(time.Duration(i) * time.Minute),
+		})
+	}
+
+	r := testutil.NewRequest(t, http.MethodGet, "/notes?page=2&limit=2", nil)
+	w := doNote(h.GetNotes, r, testUserID)
+
+	testutil.AssertStatus(t, w, http.StatusOK)
+	var body struct {
+		Notes      []model.Note         `json:"notes"`
+		Pagination model.PaginationMeta `json:"pagination"`
+	}
+	testutil.DecodeBody(t, w, &body)
+
+	if gotIDs := []int64{body.Notes[0].ID, body.Notes[1].ID}; gotIDs[0] != 3 || gotIDs[1] != 2 {
+		t.Fatalf("page ids: got %v, want [3 2]", gotIDs)
+	}
+	wantMeta := model.PaginationMeta{Page: 2, Limit: 2, Total: 5, TotalPages: 3}
+	if body.Pagination != wantMeta {
+		t.Fatalf("pagination: got %+v, want %+v", body.Pagination, wantMeta)
+	}
+}
+
+func TestGetNotes_PageOutOfRange(t *testing.T) {
+	h, store := newNoteHandler()
+	seedNote(store, testUserID, "Only note", "Body")
+
+	r := testutil.NewRequest(t, http.MethodGet, "/notes?page=3&limit=2", nil)
+	w := doNote(h.GetNotes, r, testUserID)
+
+	testutil.AssertStatus(t, w, http.StatusOK)
+	var body struct {
+		Notes      []model.Note         `json:"notes"`
+		Pagination model.PaginationMeta `json:"pagination"`
+	}
+	testutil.DecodeBody(t, w, &body)
+
+	if len(body.Notes) != 0 {
+		t.Fatalf("notes count: got %d, want 0", len(body.Notes))
+	}
+	wantMeta := model.PaginationMeta{Page: 3, Limit: 2, Total: 1, TotalPages: 1}
+	if body.Pagination != wantMeta {
+		t.Fatalf("pagination: got %+v, want %+v", body.Pagination, wantMeta)
+	}
+}
+
+func TestGetNotes_InvalidPagination(t *testing.T) {
+	h, _ := newNoteHandler()
+
+	cases := []string{
+		"/notes?page=0",
+		"/notes?page=abc",
+		"/notes?limit=0",
+		"/notes?limit=101",
+		"/notes?limit=abc",
+	}
+	for _, path := range cases {
+		t.Run(path, func(t *testing.T) {
+			r := testutil.NewRequest(t, http.MethodGet, path, nil)
+			w := doNote(h.GetNotes, r, testUserID)
+
+			testutil.AssertStatus(t, w, http.StatusBadRequest)
+			var body map[string]string
+			if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+				t.Fatalf("decode response body: %v", err)
+			}
+			if body["error"] == "" {
+				t.Fatalf("expected error message, got %+v", body)
+			}
+		})
 	}
 }
 

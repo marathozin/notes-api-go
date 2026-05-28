@@ -23,3 +23,17 @@ type UpdateNoteInput struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }
+
+// PaginationParams задаёт параметры постраничной выдачи.
+type PaginationParams struct {
+	Page  int
+	Limit int
+}
+
+// PaginationMeta описывает состояние постраничной выдачи в ответе API.
+type PaginationMeta struct {
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	Total      int `json:"total"`
+	TotalPages int `json:"total_pages"`
+}
