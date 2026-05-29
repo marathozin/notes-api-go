@@ -9,16 +9,16 @@ import (
 
 	"github.com/marathozin/notes-api-go/internal/middleware"
 	"github.com/marathozin/notes-api-go/internal/model"
-	"github.com/marathozin/notes-api-go/internal/store"
+	"github.com/marathozin/notes-api-go/internal/service"
 	"github.com/marathozin/notes-api-go/pkg/response"
 )
 
 // NoteHandler обрабатывает CRUD-запросы заметок.
 type NoteHandler struct {
-	notes store.NoteStore
+	notes service.NoteService
 }
 
-func NewNoteHandler(notes store.NoteStore) *NoteHandler {
+func NewNoteHandler(notes service.NoteService) *NoteHandler {
 	return &NoteHandler{notes: notes}
 }
 
@@ -41,7 +41,7 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notes, total, err := h.notes.GetAll(userID, pagination)
+	notes, total, err := h.notes.List(r.Context(), userID, pagination)
 	if err != nil {
 		response.Error(w, http.StatusInternalServerError, "could not retrieve notes")
 		return
@@ -78,9 +78,9 @@ func (h *NoteHandler) GetNote(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := middleware.GetUserID(r)
 
-	note, err := h.notes.GetByID(id, userID)
+	note, err := h.notes.Get(r.Context(), id, userID)
 	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
+		if errors.Is(err, service.ErrNotFound) {
 			response.Error(w, http.StatusNotFound, "note not found")
 			return
 		}
@@ -111,15 +111,14 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if input.Title == "" || input.Content == "" {
-		response.Error(w, http.StatusUnprocessableEntity, "title and content are required")
-		return
-	}
-
-	note, err := h.notes.Create(userID, input)
+	note, err := h.notes.Create(r.Context(), userID, input)
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, err.Error())
-		//response.Error(w, http.StatusInternalServerError, "could not create note")
+		var validationErr service.ValidationError
+		if errors.As(err, &validationErr) {
+			response.Error(w, http.StatusUnprocessableEntity, validationErr.Error())
+			return
+		}
+		response.Error(w, http.StatusInternalServerError, "could not create note")
 		return
 	}
 	response.JSON(w, http.StatusCreated, "note", note)
@@ -152,14 +151,14 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if input.Title == "" || input.Content == "" {
-		response.Error(w, http.StatusUnprocessableEntity, "title and content are required")
-		return
-	}
-
-	note, err := h.notes.Update(id, userID, input)
+	note, err := h.notes.Update(r.Context(), id, userID, input)
 	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
+		var validationErr service.ValidationError
+		if errors.As(err, &validationErr) {
+			response.Error(w, http.StatusUnprocessableEntity, validationErr.Error())
+			return
+		}
+		if errors.Is(err, service.ErrNotFound) {
 			response.Error(w, http.StatusNotFound, "note not found")
 			return
 		}
@@ -188,8 +187,8 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := middleware.GetUserID(r)
 
-	if err := h.notes.Delete(id, userID); err != nil {
-		if errors.Is(err, store.ErrNotFound) {
+	if err := h.notes.Delete(r.Context(), id, userID); err != nil {
+		if errors.Is(err, service.ErrNotFound) {
 			response.Error(w, http.StatusNotFound, "note not found")
 			return
 		}
