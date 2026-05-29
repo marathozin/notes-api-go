@@ -60,10 +60,12 @@ func main() {
 		cfg.JWT.AccessTokenTTL,
 		cfg.JWT.RefreshTokenTTL,
 	)
+	authService := service.NewAuthService(userStore, tokenService)
+	noteService := service.NewNoteService(noteStore)
 
 	// Handlers
-	authHandler := handler.NewAuthHandler(userStore, tokenService)
-	noteHandler := handler.NewNoteHandler(noteStore)
+	authHandler := handler.NewAuthHandler(authService)
+	noteHandler := handler.NewNoteHandler(noteService)
 
 	// Router
 	router := handler.NewRouter(authHandler, noteHandler, tokenService)

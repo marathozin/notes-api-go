@@ -1,17 +1,19 @@
 package handler_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
 	"github.com/marathozin/notes-api-go/internal/handler"
 	"github.com/marathozin/notes-api-go/internal/model"
+	"github.com/marathozin/notes-api-go/internal/service"
 	"github.com/marathozin/notes-api-go/internal/testutil"
 )
 
 func newAuthHandler() (*handler.AuthHandler, *testutil.MockUserStore) {
 	users := testutil.NewMockUserStore()
-	return handler.NewAuthHandler(users, &testutil.MockTokenService{}), users
+	return handler.NewAuthHandler(service.NewAuthService(users, &testutil.MockTokenService{})), users
 }
 
 // Register
@@ -88,7 +90,7 @@ func TestRegister_InvalidJSON(t *testing.T) {
 }
 
 func TestRegister_StoreError(t *testing.T) {
-	h := handler.NewAuthHandler(&testutil.MockFailUserStore{}, &testutil.MockTokenService{})
+	h := handler.NewAuthHandler(service.NewAuthService(&testutil.MockFailUserStore{}, &testutil.MockTokenService{}))
 
 	r := testutil.NewRequest(t, http.MethodPost, "/auth/register", model.RegisterInput{
 		Email:    "user@example.com",
@@ -106,7 +108,7 @@ func TestLogin_Success(t *testing.T) {
 	h, users := newAuthHandler()
 
 	// Сначала создание пользователя.
-	_, err := users.Create(model.RegisterInput{
+	_, err := users.Create(context.Background(), model.RegisterInput{
 		Email:    "login@example.com",
 		Username: "loginuser",
 		Password: "secret123",
@@ -129,7 +131,7 @@ func TestLogin_Success(t *testing.T) {
 func TestLogin_WrongPassword(t *testing.T) {
 	h, users := newAuthHandler()
 
-	_, err := users.Create(model.RegisterInput{
+	_, err := users.Create(context.Background(), model.RegisterInput{
 		Email:    "user@example.com",
 		Username: "user",
 		Password: "secret123",
@@ -220,7 +222,7 @@ func TestRefresh_MissingToken(t *testing.T) {
 func TestMe_Success(t *testing.T) {
 	h, users := newAuthHandler()
 
-	user, err := users.Create(model.RegisterInput{
+	user, err := users.Create(context.Background(), model.RegisterInput{
 		Email:    "me@example.com",
 		Username: "meuser",
 		Password: "secret123",

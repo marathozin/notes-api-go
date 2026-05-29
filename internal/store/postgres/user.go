@@ -22,7 +22,7 @@ func NewUserStore(db *pgxpool.Pool) *UserStore {
 	return &UserStore{db: db}
 }
 
-func (s *UserStore) Create(input model.RegisterInput) (*model.User, error) {
+func (s *UserStore) Create(ctx context.Context, input model.RegisterInput) (*model.User, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func (s *UserStore) Create(input model.RegisterInput) (*model.User, error) {
 		RETURNING id, email, username, hashed_password, is_active, created_at`
 
 	var u model.User
-	err = s.db.QueryRow(context.Background(), q,
+	err = s.db.QueryRow(ctx, q,
 		input.Email, input.Username, string(hash),
 	).Scan(&u.ID, &u.Email, &u.Username, &u.HashedPassword, &u.IsActive, &u.CreatedAt)
 	if err != nil {
@@ -46,13 +46,13 @@ func (s *UserStore) Create(input model.RegisterInput) (*model.User, error) {
 	return &u, nil
 }
 
-func (s *UserStore) GetByEmail(email string) (*model.User, error) {
+func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	const q = `
 		SELECT id, email, username, hashed_password, is_active, created_at
 		FROM users WHERE email = $1`
 
 	var u model.User
-	err := s.db.QueryRow(context.Background(), q, email).
+	err := s.db.QueryRow(ctx, q, email).
 		Scan(&u.ID, &u.Email, &u.Username, &u.HashedPassword, &u.IsActive, &u.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -63,13 +63,13 @@ func (s *UserStore) GetByEmail(email string) (*model.User, error) {
 	return &u, nil
 }
 
-func (s *UserStore) GetByID(id int64) (*model.User, error) {
+func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) {
 	const q = `
 		SELECT id, email, username, hashed_password, is_active, created_at
 		FROM users WHERE id = $1`
 
 	var u model.User
-	err := s.db.QueryRow(context.Background(), q, id).
+	err := s.db.QueryRow(ctx, q, id).
 		Scan(&u.ID, &u.Email, &u.Username, &u.HashedPassword, &u.IsActive, &u.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

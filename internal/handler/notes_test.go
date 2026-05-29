@@ -11,6 +11,7 @@ import (
 
 	"github.com/marathozin/notes-api-go/internal/handler"
 	"github.com/marathozin/notes-api-go/internal/model"
+	"github.com/marathozin/notes-api-go/internal/service"
 	"github.com/marathozin/notes-api-go/internal/testutil"
 )
 
@@ -18,7 +19,7 @@ const testUserID int64 = 1
 
 func newNoteHandler() (*handler.NoteHandler, *testutil.MockNoteStore) {
 	notes := testutil.NewMockNoteStore()
-	return handler.NewNoteHandler(notes), notes
+	return handler.NewNoteHandler(service.NewNoteService(notes)), notes
 }
 
 // seedNote добавляет заметку в стор и возвращает её.
@@ -213,7 +214,7 @@ func TestGetNotes_InvalidPagination(t *testing.T) {
 }
 
 func TestGetNotes_StoreError(t *testing.T) {
-	h := handler.NewNoteHandler(&testutil.MockFailNoteStore{})
+	h := handler.NewNoteHandler(service.NewNoteService(&testutil.MockFailNoteStore{}))
 
 	r := testutil.NewRequest(t, http.MethodGet, "/notes", nil)
 	w := doNote(h.GetNotes, r, testUserID)
@@ -268,7 +269,7 @@ func TestGetNote_InvalidID(t *testing.T) {
 }
 
 func TestGetNote_StoreError(t *testing.T) {
-	h := handler.NewNoteHandler(&testutil.MockFailNoteStore{})
+	h := handler.NewNoteHandler(service.NewNoteService(&testutil.MockFailNoteStore{}))
 
 	r := testutil.NewRequest(t, http.MethodGet, "/notes/1", nil)
 	r = setPathID(r, 1)
@@ -326,7 +327,7 @@ func TestCreateNote_InvalidJSON(t *testing.T) {
 }
 
 func TestCreateNote_StoreError(t *testing.T) {
-	h := handler.NewNoteHandler(&testutil.MockFailNoteStore{})
+	h := handler.NewNoteHandler(service.NewNoteService(&testutil.MockFailNoteStore{}))
 
 	r := testutil.NewRequest(t, http.MethodPost, "/notes", model.CreateNoteInput{
 		Title:   "Title",
@@ -457,7 +458,7 @@ func TestDeleteNote_InvalidID(t *testing.T) {
 }
 
 func TestDeleteNote_StoreError(t *testing.T) {
-	h := handler.NewNoteHandler(&testutil.MockFailNoteStore{})
+	h := handler.NewNoteHandler(service.NewNoteService(&testutil.MockFailNoteStore{}))
 
 	r := testutil.NewRequest(t, http.MethodDelete, "/notes/1", nil)
 	r = setPathID(r, 1)

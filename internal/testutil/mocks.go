@@ -3,6 +3,7 @@
 package testutil
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -25,7 +26,7 @@ func NewMockUserStore() *MockUserStore {
 	return &MockUserStore{users: make(map[string]*model.User)}
 }
 
-func (s *MockUserStore) Create(input model.RegisterInput) (*model.User, error) {
+func (s *MockUserStore) Create(_ context.Context, input model.RegisterInput) (*model.User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -51,7 +52,7 @@ func (s *MockUserStore) Create(input model.RegisterInput) (*model.User, error) {
 	return u, nil
 }
 
-func (s *MockUserStore) GetByEmail(email string) (*model.User, error) {
+func (s *MockUserStore) GetByEmail(_ context.Context, email string) (*model.User, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -62,7 +63,7 @@ func (s *MockUserStore) GetByEmail(email string) (*model.User, error) {
 	return u, nil
 }
 
-func (s *MockUserStore) GetByID(id int64) (*model.User, error) {
+func (s *MockUserStore) GetByID(_ context.Context, id int64) (*model.User, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -85,7 +86,7 @@ func NewMockNoteStore() *MockNoteStore {
 	return &MockNoteStore{notes: make(map[int64]*model.Note)}
 }
 
-func (s *MockNoteStore) GetAll(userID int64, pagination model.PaginationParams) ([]*model.Note, int, error) {
+func (s *MockNoteStore) GetAll(_ context.Context, userID int64, pagination model.PaginationParams) ([]*model.Note, int, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -114,7 +115,7 @@ func (s *MockNoteStore) GetAll(userID int64, pagination model.PaginationParams) 
 	return result[start:end], total, nil
 }
 
-func (s *MockNoteStore) GetByID(id, userID int64) (*model.Note, error) {
+func (s *MockNoteStore) GetByID(_ context.Context, id, userID int64) (*model.Note, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -125,7 +126,7 @@ func (s *MockNoteStore) GetByID(id, userID int64) (*model.Note, error) {
 	return n, nil
 }
 
-func (s *MockNoteStore) Create(userID int64, input model.CreateNoteInput) (*model.Note, error) {
+func (s *MockNoteStore) Create(_ context.Context, userID int64, input model.CreateNoteInput) (*model.Note, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -143,7 +144,7 @@ func (s *MockNoteStore) Create(userID int64, input model.CreateNoteInput) (*mode
 	return n, nil
 }
 
-func (s *MockNoteStore) Update(id, userID int64, input model.UpdateNoteInput) (*model.Note, error) {
+func (s *MockNoteStore) Update(_ context.Context, id, userID int64, input model.UpdateNoteInput) (*model.Note, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -158,7 +159,7 @@ func (s *MockNoteStore) Update(id, userID int64, input model.UpdateNoteInput) (*
 	return n, nil
 }
 
-func (s *MockNoteStore) Delete(id, userID int64) error {
+func (s *MockNoteStore) Delete(_ context.Context, id, userID int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -187,25 +188,29 @@ var ErrStore = fmt.Errorf("store error")
 // Cтор, который всегда возвращает ошибку (для тестов 500).
 type MockFailUserStore struct{}
 
-func (s *MockFailUserStore) Create(_ model.RegisterInput) (*model.User, error) {
+func (s *MockFailUserStore) Create(_ context.Context, _ model.RegisterInput) (*model.User, error) {
 	return nil, ErrStore
 }
-func (s *MockFailUserStore) GetByEmail(_ string) (*model.User, error) { return nil, ErrStore }
-func (s *MockFailUserStore) GetByID(_ int64) (*model.User, error)     { return nil, ErrStore }
+func (s *MockFailUserStore) GetByEmail(_ context.Context, _ string) (*model.User, error) {
+	return nil, ErrStore
+}
+func (s *MockFailUserStore) GetByID(_ context.Context, _ int64) (*model.User, error) {
+	return nil, ErrStore
+}
 
 // Стор, который всегда возвращает ошибку (для тестов 500).
 type MockFailNoteStore struct{}
 
-func (s *MockFailNoteStore) GetAll(_ int64, _ model.PaginationParams) ([]*model.Note, int, error) {
+func (s *MockFailNoteStore) GetAll(_ context.Context, _ int64, _ model.PaginationParams) ([]*model.Note, int, error) {
 	return nil, 0, ErrStore
 }
-func (s *MockFailNoteStore) GetByID(_, _ int64) (*model.Note, error) {
+func (s *MockFailNoteStore) GetByID(_ context.Context, _, _ int64) (*model.Note, error) {
 	return nil, ErrStore
 }
-func (s *MockFailNoteStore) Create(_ int64, _ model.CreateNoteInput) (*model.Note, error) {
+func (s *MockFailNoteStore) Create(_ context.Context, _ int64, _ model.CreateNoteInput) (*model.Note, error) {
 	return nil, ErrStore
 }
-func (s *MockFailNoteStore) Update(_, _ int64, _ model.UpdateNoteInput) (*model.Note, error) {
+func (s *MockFailNoteStore) Update(_ context.Context, _, _ int64, _ model.UpdateNoteInput) (*model.Note, error) {
 	return nil, ErrStore
 }
-func (s *MockFailNoteStore) Delete(_, _ int64) error { return ErrStore }
+func (s *MockFailNoteStore) Delete(_ context.Context, _, _ int64) error { return ErrStore }
